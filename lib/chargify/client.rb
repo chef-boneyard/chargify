@@ -141,7 +141,7 @@ module Chargify
       raw_response = post("/subscriptions/#{sub_id}/migrations.json", :body => {:product_id => product_id })
       success      = true if raw_response.code == 200
       response     = Hashie::Mash.new(raw_response)
-      (response.subscription || {}).update(:success? => success)
+      response.update(:success? => success)
     end
 
     def list_products
