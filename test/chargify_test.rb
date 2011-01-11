@@ -301,9 +301,9 @@ class ChargifyTest < Test::Unit::TestCase
     should "migrate a subscription from one product to another" do
       stub_post "https://OU812:x@pengwynn.chargify.com/subscriptions/123/migrations.json", "migrate_subscription.json"
       
-      subscription = @client.migrate_subscription(123, 354);
-      subscription.success?.should == true
-      subscription.product.id.should == 354
+      result = @client.migrate_subscription(123, 354);
+      result.success?.should == true
+      result.subscription.product.id.should == 354
     end
     
     should "return a list of products" do
