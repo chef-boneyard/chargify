@@ -1,3 +1,6 @@
+require 'open-uri'
+require 'socket'
+
 module Chargify
   class UnexpectedResponseError < RuntimeError
   end
@@ -19,17 +22,47 @@ module Chargify
     headers 'Content-Type' => 'application/json' 
     
     attr_reader :api_key, :subdomain
+    attr_accessor :http_options
     
     # Your API key can be generated on the settings screen.
     def initialize(api_key, subdomain)
       @api_key = api_key
       @subdomain = subdomain
+      @http_options = Hash.new
       
       self.class.base_uri "https://#{@subdomain}.chargify.com"
       self.class.basic_auth @api_key, 'x'
       
     end
     
+    def available?(timeout=2)
+      @available ||= begin
+        t = Socket.new(Socket::Constants::AF_INET, Socket::Constants::SOCK_STREAM, 0)
+        saddr = Socket.pack_sockaddr_in(80,self.class.base_uri)
+        connected = false
+
+        begin
+         t.connect_nonblock(saddr)
+        rescue Errno::EINPROGRESS
+          r,w,e = IO::select(nil,[t],nil,timeout)
+          if !w.nil?
+           connected = true
+          else
+            begin
+              t.connect_nonblock(saddr)
+            rescue Errno::EISCONN
+              t.close
+              connected = true
+            rescue SystemCallError
+            end
+          end
+        rescue SystemCallError
+        end
+
+        connected
+      end
+    end
+
     # options: page
     def list_customers(options={})
       customers = get("/customers.json", :query => options)
@@ -196,22 +229,22 @@ module Chargify
     
       def post(path, options={})
         jsonify_body!(options)
-        self.class.post(path, options)
+        self.class.post(path, options.merge(http_options))
       end
     
       def put(path, options={})
         jsonify_body!(options)
-        self.class.put(path, options)
+        self.class.put(path, options.merge(http_options))
       end
     
       def delete(path, options={})
         jsonify_body!(options)
-        self.class.delete(path, options)
+        self.class.delete(path, options.merge(http_options))
       end
     
       def get(path, options={})
         jsonify_body!(options)
-        self.class.get(path, options)
+        self.class.get(path, options.merge(http_options))
       end
     
       def jsonify_body!(options)
