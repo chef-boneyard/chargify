@@ -38,7 +38,7 @@ module Chargify
     def available?(timeout=2)
       @available ||= begin
         t = Socket.new(Socket::Constants::AF_INET, Socket::Constants::SOCK_STREAM, 0)
-        saddr = Socket.pack_sockaddr_in(80,self.class.base_uri)
+        saddr = Socket.pack_sockaddr_in(80,"#{@subdomain}.chargify.com")
         connected = false
 
         begin
